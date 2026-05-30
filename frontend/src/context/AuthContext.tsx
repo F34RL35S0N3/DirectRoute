@@ -119,39 +119,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const signUp = async (email: string, password: string, username: string, role: 'buyer' | 'seller') => {
-        const { data: authData, error: authError } = await withTimeout(
-            supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        username,
-                        role,
-                        location: ''
+        // Retry logic with exponential backoff untuk handle rate limit
+        let lastError;
+        let delay = 1000; // Start with 1 second
+        const maxRetries = 3;
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const { data: authData, error: authError } = await withTimeout(
+                    supabase.auth.signUp({
+                        email,
+                        password,
+                        options: {
+                            data: {
+                                username,
+                                role,
+                                location: ''
+                            }
+                        }
+                    }),
+                    10000,
+                    'Sign up timeout. Cek koneksi internet/Supabase.'
+                );
+
+                if (authError) {
+                    lastError = authError;
+                    
+                    // Check if rate limit error
+                    if (authError.message?.includes('rate limit')) {
+                        if (attempt < maxRetries - 1) {
+                            console.warn(`Rate limit hit, retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+                            await new Promise(r => setTimeout(r, delay));
+                            delay *= 2; // Exponential backoff
+                            continue;
+                        }
                     }
+                    throw authError;
                 }
-            }),
-            10000,
-            'Sign up timeout. Cek koneksi internet/Supabase.'
-        );
 
-        if (authError) throw authError;
-
-        if (authData.user) {
-            // Upsert profile (compatible with DB trigger yang auto-create profile)
-            const { error: profileError } = await supabase.from('profiles').upsert(
-                [
-                    {
-                        id: authData.user.id,
-                        username,
-                        role,
-                        location: ''
-                    }
-                ],
-                { onConflict: 'id' }
-            );
-            if (profileError) throw profileError;
+                if (authData.user) {
+                    // Upsert profile (compatible with DB trigger yang auto-create profile)
+                    const { error: profileError } = await supabase.from('profiles').upsert(
+                        [
+                            {
+                                id: authData.user.id,
+                                username,
+                                role,
+                                location: ''
+                            }
+                        ],
+                        { onConflict: 'id' }
+                    );
+                    if (profileError) throw profileError;
+                }
+                
+                // Success - exit retry loop
+                return;
+            } catch (error) {
+                lastError = error;
+                // Continue to next retry if not last attempt
+                if (attempt < maxRetries - 1) {
+                    console.warn(`Signup attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                    continue;
+                }
+            }
         }
+
+        // All retries failed
+        throw lastError || new Error('Sign up failed after multiple attempts');
     };
 
     const updateProfile = async (updates: Partial<User>) => {
