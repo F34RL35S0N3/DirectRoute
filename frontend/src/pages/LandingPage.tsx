@@ -150,7 +150,7 @@ const LandingPage: React.FC = () => {
                     </div>
                     <div className="flex-1 bg-emerald-900 rounded-3xl p-8 text-white relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/20 rounded-full blur-3xl"></div>
-                        <h3 className="text-xl font-bold mb-4">Siap untuk CODE THE FUTURE 2026?</h3>
+                        <h3 className="text-xl font-bold mb-4">Siap untuk MEMBANTU & BERINOVASI?</h3>
                         <p className="text-emerald-100/70 text-sm mb-6">Jadilah bagian dari revolusi rantai pasok digital untuk UMKM Indonesia.</p>
                         <button 
                             onClick={() => navigate('/dashboard')}
@@ -165,7 +165,7 @@ const LandingPage: React.FC = () => {
             {/* Footer */}
             <footer className="py-12 border-t border-slate-100 px-6 text-center">
                 <div className="max-w-7xl mx-auto">
-                    <p className="text-slate-400 text-sm">&copy; 2026 DirectRoute AI. Dibuat untuk Kompetisi CODE THE FUTURE.</p>
+                    <p className="text-slate-400 text-sm">&copy; 2026 DirectRoute AI. Dibuat untuk Kompetisi Hackathon.</p>
                 </div>
             </footer>
         </div>
